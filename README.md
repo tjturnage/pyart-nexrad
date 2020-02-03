@@ -50,9 +50,9 @@ Creating an Environment
 There are a few ways to create a conda environment for using Py-ART or other
 packages. One way is to use the environment file, found here:
 
-* https://github.com/ARM-DOE/pyart/blob/master/environment.yml
+* https://github.com/tjturnage/pyart/blob/master/environment.yml
 
-To create an environment using this file, use the command::
+To create an environment using this file, go to the directory with the file and use the command:
 
         conda env create -f environment.yml
 
