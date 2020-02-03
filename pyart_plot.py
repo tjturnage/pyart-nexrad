@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Downloads WSR-88D Archive level 2 files using AWS
-Plots reflectivity using pyart and saves images
+Plots reflectivity using pyart and then saves images
 
 """
 
@@ -41,10 +41,9 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
     shapefile  : str 
         shape_path - full local path to shapefile to add. This needs to be staged in advance.
 
-    cmap  : str 
-        plts dictionary that needs to be imported.
-        Otherwise can just use default color map by removing vmin,vmax, cmap arguments below
-        
+         cmap  : str 
+                 plts dictionary that needs to be imported.
+                 Can also just use default cmap by removing vmin,vmax, cmap arguments below
         
     Returns
     -------
@@ -89,10 +88,8 @@ import cartopy.crs as ccrs
 #import cartopy.feature as cfeature
 #import cartopy.io.shapereader as shpreader
 from custom_cmaps import plts
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-time_shift = timedelta(hours=6)
 
 ###########################################
 shape_path = 'C:/data/GIS/counties/central_conus/central_conus.shp'
@@ -109,13 +106,16 @@ hr_max = 1     # don't acquire files after end of this hour
 ###########################################
 
 # Assuming we'll do central time for Chicago
-# my klunky way of subtracting 6 hours from UTC, which of course changes in
-# daylight time. Been meaning to address this, but since I do research, UTC 
-# has always been fine for me 
+# my klunky way of subtracting 6 hours from UTC, to get local time
+# This of course changes with transition between standard and daylight time.
+# Been meaning to inlcude more robust handling of this, but since I'm focused
+# more on research, UTC has always been sufficient
+# maybe this is a good project for someone else :)
 
+time_shift = timedelta(hours=6)
 
 # create a string of format YYYYmmdd based on inputs above (example: '20190719')
-# then create sub-directory in image directory to save images
+# then, use this string to create sub-directory in image directory to save images
 ymd_str = f'{YYYY:.0f}{mm:02.0f}{dd:02.0f}'
 this_image_dir = os.path.join(image_dir,ymd_str,'radar')
 os.makedirs(this_image_dir, exist_ok = True)
@@ -145,4 +145,4 @@ for f in range(0,len(files)):
         print('getting... ' + str(files[f]))
         dst_filepath = os.path.join(this_data_dir,files[f].split('/')[-1])
         fs.get(files[f],dst_filepath)                   # download files to destination dir
-        pyart_plot_reflectivity(dst_filepath,filename)  # calls this method to plot on the fly
+        pyart_plot_reflectivity(dst_filepath,filename)  # calls this method to plot each file on the fly
