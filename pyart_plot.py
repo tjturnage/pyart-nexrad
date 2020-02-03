@@ -55,7 +55,7 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
     # convert datetime object from UTC to local time
     local_dt_obj = dt_obj - time_shift
     # create string for title based on new datetime object
-    title = datetime.strftime(local_dt_obj, '%a %b %d, %Y -- %I:%M %p')
+    title = datetime.strftime(local_dt_obj, '%a %b %d, %Y\n%I:%M %p EDT')
     radar = pyart.io.read_nexrad_archive(filepath)
     display = pyart.graph.RadarMapDisplay(radar)
     rda_lon = radar.longitude['data'][0]
@@ -68,7 +68,7 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
     projection = ccrs.LambertConformal(central_latitude=rda_lat,central_longitude=rda_lon)
     display.plot_ppi_map('reflectivity', 0, vmin=-30, vmax=80,cmap=plts['Ref']['cmap'],
                          title=title, title_flag=True,
-                         colorbar_flag = True,colorbar_label = 'Radar Reflectivity',
+                         colorbar_flag = True,colorbar_label = plts['Ref']['cblabel'],
                          min_lon=xmin, max_lon=xmax, min_lat=ymin, max_lat=ymax,
                          resolution='50m', projection=projection, shapefile=shape_path,
                          shapefile_kwargs = {'facecolor':'none', 'edgecolor':'gray', 'linewidth':0.7},
@@ -78,6 +78,7 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
     image_dst_path = os.path.join(this_image_dir,filename + '.png')
     plt.savefig(image_dst_path,format='png',bbox_inches="tight", dpi=150)
     print('  Image saved at  ' + image_dst_path)
+    plt.close()
     
     return
 
@@ -93,6 +94,7 @@ from datetime import datetime, timedelta
 
 
 ###########################################
+# Need this pre-staged in directory of your choice
 shape_path = 'C:/data/GIS/counties/central_conus/central_conus.shp'
 
 
@@ -100,16 +102,16 @@ shape_path = 'C:/data/GIS/counties/central_conus/central_conus.shp'
 ###########################################
 radar = 'KGRR'
 YYYY = 2019
-mm = 9
-dd = 12
-hr_min = 0     # don't acquire files before this hour
-hr_max = 1     # don't acquire files after end of this hour
+mm = 7
+dd = 20
+hr_min = 16     # don't acquire files before this hour
+hr_max = 18     # don't acquire files after end of this hour
 ###########################################
 
 # Assuming we'll do central time for Chicago
 # my klunky way of subtracting 6 hours from UTC, to get local time
 # This of course changes with transition between standard and daylight time.
-# Been meaning to inlcude more robust handling of this, but since I'm focused
+# Been meaning to include more robust handling of this, but since I'm focused
 # more on research, UTC has always been sufficient
 # maybe this is a good project for someone else :)
 
@@ -150,8 +152,14 @@ if radar_files_not_already_downloaded:
             print('getting... ' + str(files[f]))
             dst_filepath = os.path.join(this_data_dir,files[f].split('/')[-1])
             fs.get(files[f],dst_filepath)                   # download files to destination dir
-            print('Download complete! Now creating plot.')
+            print('  Download complete! Now creating plot.')
             pyart_plot_reflectivity(dst_filepath,filename)  # calls this method to plot each file on the fly
 
 else:
-    radar_file_src_directory = this_data_dir
+    radar_file_src_directory = this_data_dir # wherever you have the arc2 files stored
+    files = os.listdir(this_data_dir)
+    for file in files:
+        if 'V06' in file:
+            full_filepath = os.path.join(this_data_dir,file)
+            print('  Beginning plot of ' + full_filepath)
+            pyart_plot_reflectivity(full_filepath,file)
