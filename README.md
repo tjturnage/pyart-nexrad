@@ -23,7 +23,7 @@ Creating an Environment in Anaconda
 -----------------------------------
 
 Next you'll need to create a conda environment for using Py-ART and its associated packages. 
-The easiest way to do this in my opinion is with an environment file, found here:
+In my opinion, the easiest way to do this is with an environment file:
 
 * https://github.com/tjturnage/pyart/blob/master/environment.yml
 
