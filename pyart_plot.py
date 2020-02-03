@@ -76,7 +76,8 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
                          fig=fig,  lat_0=rda_lat, lon_0=rda_lon)
 
     image_dst_path = os.path.join(this_image_dir,filename + '.png')
-    plt.savefig(image_dst_path,format='png',bbox_inches="tight")
+    plt.savefig(image_dst_path,format='png',bbox_inches="tight", dpi=150)
+    print('  Image saved at  ' + image_dst_path)
     
     return
 
@@ -120,29 +121,37 @@ ymd_str = f'{YYYY:.0f}{mm:02.0f}{dd:02.0f}'
 this_image_dir = os.path.join(image_dir,ymd_str,'radar')
 os.makedirs(this_image_dir, exist_ok = True)
 
-
-# sample directory I'd use    : 'C:/data/20180719/KDMX/raw'
 this_data_dir = os.path.join(data_dir,ymd_str,radar,'raw')
-os.makedirs(this_data_dir,exist_ok=True)
 
+radar_files_not_already_downloaded = True
 
-# Here we will use Amazon AWS to download and process the desired radar data
-import s3fs
-fs = s3fs.S3FileSystem(anon=True)
-fs.ls('s3://noaa-nexrad-level2/')
-# example AWS bucket directory  : 'noaa-nexrad-level2/2018/07/19/KDMX/'
-bucket_dir_str = f'noaa-nexrad-level2/{YYYY:.0f}/{mm:02.0f}/{dd:02.0f}/{radar}/'
+if radar_files_not_already_downloaded:
+    # sample directory I'd use    : 'C:/data/20180719/KDMX/raw'
+    this_data_dir = os.path.join(data_dir,ymd_str,radar,'raw')
+    os.makedirs(this_data_dir,exist_ok=True)
+    
+    
+    # Here we use Amazon AWS to download and process the desired radar data
+    import s3fs
+    fs = s3fs.S3FileSystem(anon=True)
+    fs.ls('s3://noaa-nexrad-level2/')
+    # example AWS bucket directory  : 'noaa-nexrad-level2/2018/07/19/KDMX/'
+    bucket_dir_str = f'noaa-nexrad-level2/{YYYY:.0f}/{mm:02.0f}/{dd:02.0f}/{radar}/'
+    
+    # list available files in bucket
+    # sample filename :  KDMX20180719_221153_V06
+    files = np.array(fs.ls(bucket_dir_str))
+    
+    # sample source filepath  : 'noaa-nexrad-level2/2018/07/19/KDMX/KDMX20180719_221153_V06'
+    for f in range(0,len(files)):
+        filename = files[f].split('/')[-1]  # this extracts filename only after last '/'
+        file_hour = int(filename.split('_')[1][0:2])
+        if file_hour >= hr_min and file_hour <= hr_max and 'MD' not in filename:
+            print('getting... ' + str(files[f]))
+            dst_filepath = os.path.join(this_data_dir,files[f].split('/')[-1])
+            fs.get(files[f],dst_filepath)                   # download files to destination dir
+            print('Download complete! Now creating plot.')
+            pyart_plot_reflectivity(dst_filepath,filename)  # calls this method to plot each file on the fly
 
-# list available files in bucket
-# sample filename :  KDMX20180719_221153_V06
-files = np.array(fs.ls(bucket_dir_str))
-
-# sample source filepath  : 'noaa-nexrad-level2/2018/07/19/KDMX/KDMX20180719_221153_V06'
-for f in range(0,len(files)):
-    filename = files[f].split('/')[-1]  # this extracts filename only after last '/'
-    file_hour = int(filename.split('_')[1][0:2])
-    if file_hour >= hr_min and file_hour <= hr_max and 'MD' not in filename:
-        print('getting... ' + str(files[f]))
-        dst_filepath = os.path.join(this_data_dir,files[f].split('/')[-1])
-        fs.get(files[f],dst_filepath)                   # download files to destination dir
-        pyart_plot_reflectivity(dst_filepath,filename)  # calls this method to plot each file on the fly
+else:
+    radar_file_src_directory = this_data_dir
