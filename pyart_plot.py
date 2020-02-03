@@ -3,6 +3,12 @@
 Downloads WSR-88D Archive level 2 files using AWS
 Plots reflectivity using pyart and then saves images
 
+Prequisites:
+     set_paths  :  A function called fromresources/reference_data.py that sets paths
+                   You may want to override some or all of these
+    shape_path  :  A path to the shapefile you want to plot
+         plts   :  Dictionary of colormaps (cmaps) and information about how to plot ( e.g., value range, colorbar settings, etc.) 
+    
 """
 
 import sys
@@ -87,14 +93,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pyart
 import cartopy.crs as ccrs
-#import cartopy.feature as cfeature
-#import cartopy.io.shapereader as shpreader
 from custom_cmaps import plts
 from datetime import datetime, timedelta
 
 
 ###########################################
 # Need this pre-staged in directory of your choice
+# can be anything, not just counties
 shape_path = 'C:/data/GIS/counties/central_conus/central_conus.shp'
 
 
