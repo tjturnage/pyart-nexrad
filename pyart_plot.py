@@ -81,6 +81,18 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
                          lat_lines=[0],lon_lines=[0], # moves lat/lon lines off to the side
                          fig=fig,  lat_0=rda_lat, lon_0=rda_lon)
 
+    ax = display.ax
+    for sh in shape_mini:
+        if search('inter', str(sh)):
+            ax.add_feature(shape_mini[sh], facecolor='none', edgecolor='red', linewidth=0.5)
+        elif search('states', str(sh)):
+            ax.add_feature(shape_mini[sh], facecolor='none', edgecolor='black', linewidth=1, zorder=10)
+        elif search('counties', str(sh)):
+            ax.add_feature(shape_mini[sh], facecolor='none', edgecolor='gray', linewidth=0.5)
+        else:
+            ax.add_feature(shape_mini[sh])
+    ax.annotate('Grand Rapids', xy=GrandRapids_CENTER, xycoords=ccrs.PlateCarree()._as_mpl_transform(ax), color='red',
+            ha='left', va='center')
     image_dst_path = os.path.join(this_image_dir,filename + '.png')
     plt.savefig(image_dst_path,format='png',bbox_inches="tight", dpi=150)
     print('  Image saved at  ' + image_dst_path)
@@ -93,14 +105,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pyart
 import cartopy.crs as ccrs
+from gis_layers import pyart_gis_layers
+
+shape_mini = pyart_gis_layers()
 from custom_cmaps import plts
 from datetime import datetime, timedelta
+from re import search
 
+
+BattleCreek_CENTER = ( -85.1797467465,42.321097635)
+AnnArbor_CENTER = ( -83.7199908872,42.3003753856)
+Kalamazoo_CENTER = ( -85.587189577,42.2921588329)
+Muskegon_CENTER = ( -86.2483636899,43.2345819286)
+Flint_CENTER = ( -83.6875380877,43.0128641958)
+GrandRapids_CENTER = ( -85.6699493833,42.9637199087)
+Pontiac_CENTER = ( -83.290223838,42.6518526398)
+Cadillac_CENTER = ( -85.4136084409,44.2512123811)
+Lansing_CENTER = ( -84.5467362892,42.7335272411)
 
 ###########################################
 # Need this pre-staged in directory of your choice
 # can be anything, not just counties
-shape_path = 'C:/data/GIS/counties/central_conus/central_conus.shp'
+shape_path = 'C:/data/GIS/counties/counties_central_conus/counties_central_conus.shp'
 
 
 # Define radar, date, hours in which to acquire files and plot data
@@ -130,7 +156,7 @@ os.makedirs(this_image_dir, exist_ok = True)
 
 this_data_dir = os.path.join(data_dir,ymd_str,radar,'raw')
 
-radar_files_not_already_downloaded = True
+radar_files_not_already_downloaded = False
 
 if radar_files_not_already_downloaded:
     # sample directory I'd use    : 'C:/data/20180719/KDMX/raw'
@@ -161,7 +187,7 @@ if radar_files_not_already_downloaded:
             pyart_plot_reflectivity(dst_filepath,filename)  # calls this method to plot each file on the fly
 
 else:
-    radar_file_src_directory = this_data_dir # wherever you have the arc2 files stored
+    this_data_dir = 'C:/data/20190720/test' # wherever you have the arc2 files stored
     files = os.listdir(this_data_dir)
     for file in files:
         if 'V06' in file:
