@@ -25,6 +25,28 @@ except:
 from reference_data import set_paths
 data_dir,image_dir,archive_dir,gis_dir,py_call,placefile_dir = set_paths()
 
+def get_places(xmin,xmax,ymin,ymax):
+
+    src = 'C:/data/GIS/places/places_conus.csv'
+        
+    places = []
+    with open(src) as fp:  
+        content = fp.read().splitlines()
+        for line in content:
+            test = line.split(',')
+            place = test[0]
+            lat = test[-2][:6]
+            lon = test[-1][:7]
+            try:
+                float(lon)
+                if float(lon) > xmin and float(lon) < xmax:
+                    if float(lat) > ymin and float(lat) < ymax:
+                        places.append([place,lon,lat])
+            except:
+                pass
+    
+    return places
+
 
 def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
     """
@@ -70,6 +92,7 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
     xmax = rda_lon + dx
     ymin = rda_lat - dy
     ymax = rda_lat + dy
+    locations = get_places(xmin, xmax, ymin, ymax)
     fig = plt.figure(figsize=(6,6))
     projection = ccrs.LambertConformal(central_latitude=rda_lat,central_longitude=rda_lon)
     display.plot_ppi_map('reflectivity', 0, vmin=-30, vmax=80,cmap=plts['Ref']['cmap'],
@@ -90,15 +113,21 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
         elif search('counties', str(sh)):
             ax.add_feature(shape_mini[sh], facecolor='none', edgecolor='gray', linewidth=0.5)
         else:
-            ax.add_feature(shape_mini[sh])
-    ax.annotate('Grand Rapids', xy=GrandRapids_CENTER, xycoords=ccrs.PlateCarree()._as_mpl_transform(ax), color='red',
-            ha='left', va='center')
+            pass
+    for p in range(0,len(locations)):
+        place = locations[p][0]
+        lat = float(locations[p][2])
+        lon = float(locations[p][1])        
+        plt.plot(lon,lat, 'o', color='black',transform=ccrs.PlateCarree(),zorder=10)
+        plt.text(lon,lat,place,horizontalalignment='center',verticalalignment='top',transform=ccrs.PlateCarree())
+
     image_dst_path = os.path.join(this_image_dir,filename + '.png')
+
     plt.savefig(image_dst_path,format='png',bbox_inches="tight", dpi=150)
     print('  Image saved at  ' + image_dst_path)
     plt.close()
     
-    return
+    return locations
 
 
 import numpy as np
@@ -112,16 +141,6 @@ from custom_cmaps import plts
 from datetime import datetime, timedelta
 from re import search
 
-
-BattleCreek_CENTER = ( -85.1797467465,42.321097635)
-AnnArbor_CENTER = ( -83.7199908872,42.3003753856)
-Kalamazoo_CENTER = ( -85.587189577,42.2921588329)
-Muskegon_CENTER = ( -86.2483636899,43.2345819286)
-Flint_CENTER = ( -83.6875380877,43.0128641958)
-GrandRapids_CENTER = ( -85.6699493833,42.9637199087)
-Pontiac_CENTER = ( -83.290223838,42.6518526398)
-Cadillac_CENTER = ( -85.4136084409,44.2512123811)
-Lansing_CENTER = ( -84.5467362892,42.7335272411)
 
 ###########################################
 # Need this pre-staged in directory of your choice
@@ -156,9 +175,9 @@ os.makedirs(this_image_dir, exist_ok = True)
 
 this_data_dir = os.path.join(data_dir,ymd_str,radar,'raw')
 
-radar_files_not_already_downloaded = False
+radar_files_already_downloaded = True
 
-if radar_files_not_already_downloaded:
+if radar_files_already_downloaded is False:
     # sample directory I'd use    : 'C:/data/20180719/KDMX/raw'
     this_data_dir = os.path.join(data_dir,ymd_str,radar,'raw')
     os.makedirs(this_data_dir,exist_ok=True)
@@ -184,13 +203,13 @@ if radar_files_not_already_downloaded:
             dst_filepath = os.path.join(this_data_dir,files[f].split('/')[-1])
             fs.get(files[f],dst_filepath)                   # download files to destination dir
             print('  Download complete! Now creating plot.')
-            pyart_plot_reflectivity(dst_filepath,filename)  # calls this method to plot each file on the fly
+            locations = pyart_plot_reflectivity(dst_filepath,filename)  # calls this method to plot each file on the fly
 
 else:
-    this_data_dir = 'C:/data/20190720/test' # wherever you have the arc2 files stored
+    #this_data_dir = 'C:/data/20190720/radar' # wherever you have the arc2 files stored
     files = os.listdir(this_data_dir)
     for file in files:
         if 'V06' in file:
             full_filepath = os.path.join(this_data_dir,file)
             print('  Beginning plot of ' + full_filepath)
-            pyart_plot_reflectivity(full_filepath,file)
+            locations = pyart_plot_reflectivity(full_filepath,file)
