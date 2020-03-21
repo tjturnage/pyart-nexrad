@@ -22,6 +22,11 @@ import cartopy.crs as ccrs
 
 shape_path = 'C:/data/GIS/counties/counties_central_conus/counties_central_conus.shp'
 
+#prods = ['cross_correlation_ratio', 'spectrum_width', 'reflectivity',
+#         'differential_reflectivity', 'differential_phase', 'velocity']
+
+prods = ['reflectivity', 'velocity']
+
 
 try:
     os.listdir('/usr')
@@ -190,6 +195,33 @@ class Nexrad():
         return locations
 
 
+    def extract_sweeps(self,orig_list,cut):
+        sweep_list = [int(round(x*10)) for x in orig_list]
+        cut_list = []
+        found_cut = False
+        for t in range (0,len(sweep_list)):
+
+            if sweep_list[t] == cut and found_cut is False:
+
+                cut_list.append(t)       
+                found_cut = True
+            elif sweep_list[t] == cut and found_cut is True:
+                found_cut = False
+
+        return cut_list
+
+    def format_name(self,title_str):
+        #'KILX 0.5 Deg. 2019-06-16T03:01:10.802000Z \nEquivalent reflectivity factor'
+        az_start = radar.sweep_start_ray_index['data'][s]
+        delta_secs = int(round(radar.time['data'][az_start]))
+        new_time = dt_obj + timedelta(seconds=delta_secs)
+        temp_title = display.generate_title('reflectivity',s)
+        #title_parts = temp_title.split(' ')
+        #el = title_parts[1]
+        #new_title = "{} {} Degrees Reflectivity\n".format(title_parts[0],el)
+
+        time_title = datetime.strftime(new_time, '%a %b %d, %Y\n%I:%M %p UTC')
+        title = new_title + time_title        
 
     def plot_ref(self,filepath,dx=1,dy=1):
         """
@@ -236,10 +268,10 @@ class Nexrad():
         #filename = filepath.split('\\')[-1]
         radar = pyart.io.read_nexrad_archive(filepath)
         display = pyart.graph.RadarMapDisplay(radar)
-        #angles = []
-        #for e in range(0,len(display.fixed_angle)):
-            
-            
+
+        angles = list(radar.fixed_angle['data'])
+        these_sweeps = self.extract_sweeps(angles,5)
+
             
         rda_lon = radar.longitude['data'][0]
         rda_lat = radar.latitude['data'][0]
@@ -248,20 +280,12 @@ class Nexrad():
         ymin = rda_lat - dy
         ymax = rda_lat + dy
 
-        for s in range(0,len(radar.sweep_number['data'])):
-            az_start = radar.sweep_start_ray_index['data'][s]
-            delta_secs = int(round(radar.time['data'][az_start]))
-            new_time = dt_obj + timedelta(seconds=delta_secs)
-            temp_title = display.generate_title('reflectivity',s)
-            title_parts = temp_title.split(' ')
-            el = title_parts[1]
-            new_title = "{} {} Degrees Reflectivity\n".format(title_parts[0],el)
-            # 'KILX 0.5 Deg. 2019-06-16T03:01:10.802000Z \nEquivalent reflectivity factor'
-            time_title = datetime.strftime(new_time, '%a %b %d, %Y\n%I:%M %p UTC')
-            title = new_title + time_title
+        for s in these_sweeps:
+
             locations = self.get_places(xmin, xmax, ymin, ymax)
             fig = plt.figure(figsize=(6,6))
             title = display.generate_title('reflectivity',1)
+            #title = 'hi'
             projection = ccrs.LambertConformal(central_latitude=rda_lat,central_longitude=rda_lon)
             display.plot_ppi_map('reflectivity', int(s), vmin=-30, vmax=80,cmap=plts['Ref']['cmap'],
                                   title=title, title_flag=True,
@@ -290,7 +314,8 @@ class Nexrad():
                 plt.text(lon,lat,place,horizontalalignment='center',verticalalignment='top',transform=ccrs.PlateCarree())
     
             fname_dt = datetime.strftime(new_time, '%Y%m%d_%H%M%S')
-            fname = "{}_{}.png".format(fname_dt,el)
+            #fname = "{}_{}.png".format(fname_dt,el)
+            fname = "{}_ref.png".format(fname_dt)
             image_dst_path = os.path.join(self.image_dest_dir,fname)
             plt.savefig(image_dst_path,format='png',bbox_inches="tight", dpi=150)
             print('  Image saved at  ' + image_dst_path)
@@ -307,6 +332,9 @@ end_date = datetime(2019, 6, 16, 3, 20)
 
 example = Nexrad(radarId, start_date, end_date)
 down = example.download_files()
+hi = down[0]
+print(down[0])
+
 #filelist = NexradFileList(radarId, start_date, end_date).aws_file_list()
 
 
