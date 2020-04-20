@@ -42,3 +42,5 @@ or deactivated after use:
 
         source deactivate pyart_env
 
+Collaborating with Others
+-------------------------
