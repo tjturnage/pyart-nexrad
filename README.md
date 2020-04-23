@@ -45,4 +45,4 @@ or deactivated after use:
 Collaborating with Others
 -------------------------
 
-Here there would be information about contributing to this project.
+Here there would be information about contributing to this project!
