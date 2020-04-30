@@ -13,21 +13,25 @@ Prequisites:
 
 import sys
 import os
+import configlocal as cfg
 
-try:
-    os.listdir('/usr')
-    scripts_dir = '/data/scripts'
-    sys.path.append(os.path.join(scripts_dir,'resources'))
-except:
-    scripts_dir = 'C:/data/scripts'
-    sys.path.append(os.path.join(scripts_dir,'resources'))
+sys.path.append(os.path.join(cfg.resources_dir))
 
-from reference_data import set_paths
-data_dir,image_dir,archive_dir,gis_dir,py_call,placefile_dir = set_paths()
+data_dir = cfg.data_dir
+
+image_dir = cfg.images_dir
+
+placefile_dir = cfg.placefile_dir
+
+archive_dir = cfg.archive_dir
+
+gis_dir = cfg.gis_dir
+
+py_call = cfg.py_call
 
 def get_places(xmin,xmax,ymin,ymax):
 
-    src = 'C:/data/GIS/places/places_conus.csv'
+    src = os.path.join(cfg.gis_dir, "places", "places_conus.csv")
         
     places = []
     with open(src) as fp:  
@@ -46,7 +50,6 @@ def get_places(xmin,xmax,ymin,ymax):
                 pass
     
     return places
-
 
 def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
     """
@@ -92,7 +95,10 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
     xmax = rda_lon + dx
     ymin = rda_lat - dy
     ymax = rda_lat + dy
+
+    ''' Issue #4: Commented out until GIS folder is provided in pyart repo
     locations = get_places(xmin, xmax, ymin, ymax)
+    '''
     fig = plt.figure(figsize=(6,6))
     projection = ccrs.LambertConformal(central_latitude=rda_lat,central_longitude=rda_lon)
     display.plot_ppi_map('reflectivity', 0, vmin=-30, vmax=80,cmap=plts['Ref']['cmap'],
@@ -104,7 +110,9 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
                          lat_lines=[0],lon_lines=[0], # moves lat/lon lines off to the side
                          fig=fig,  lat_0=rda_lat, lon_0=rda_lon)
 
+    ''' Issue #4 -- Module gis_layers not provided in pyart repo
     ax = display.ax
+    
     for sh in shape_mini:
         if search('inter', str(sh)):
             ax.add_feature(shape_mini[sh], facecolor='none', edgecolor='red', linewidth=0.5)
@@ -114,29 +122,36 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
             ax.add_feature(shape_mini[sh], facecolor='none', edgecolor='gray', linewidth=0.5)
         else:
             pass
+    '''
+    
+    ''' Issue #4: Commented out until GIS folder is provided in pyart repo
     for p in range(0,len(locations)):
         place = locations[p][0]
         lat = float(locations[p][2])
         lon = float(locations[p][1])        
         plt.plot(lon,lat, 'o', color='black',transform=ccrs.PlateCarree(),zorder=10)
         plt.text(lon,lat,place,horizontalalignment='center',verticalalignment='top',transform=ccrs.PlateCarree())
-
+    '''
+    
     image_dst_path = os.path.join(this_image_dir,filename + '.png')
 
     plt.savefig(image_dst_path,format='png',bbox_inches="tight", dpi=150)
     print('  Image saved at  ' + image_dst_path)
     plt.close()
     
-    return locations
+    # Can't return locations until GIS folder added to repo
+    return None # locations
 
 
 import numpy as np
 import matplotlib.pyplot as plt
 import pyart
 import cartopy.crs as ccrs
-from gis_layers import pyart_gis_layers
 
-shape_mini = pyart_gis_layers()
+# Issue #4 -- Module gis_layers not provided in pyart repo
+#from gis_layers import pyart_gis_layers
+#shape_mini = pyart_gis_layers()
+
 from custom_cmaps import plts
 from datetime import datetime, timedelta
 from re import search
@@ -145,17 +160,20 @@ from re import search
 ###########################################
 # Need this pre-staged in directory of your choice
 # can be anything, not just counties
-shape_path = 'C:/data/GIS/counties/counties_central_conus/counties_central_conus.shp'
 
+# TODO: Maybe nove to a central config location.  For now, put in gis_dir.
+#shape_path = 'C:/data/GIS/counties/counties_central_conus/counties_central_conus.shp'
+shape_path = os.path.join(gis_dir, 'c_02ap19', 'c_02ap19.shp')
 
+# TODO: Move this to an external location, and eventually provide via a GUI.
 # Define radar, date, hours in which to acquire files and plot data
 ###########################################
-radar = 'KGRR'
-YYYY = 2019
-mm = 7
-dd = 20
+radar = 'KLOT'
+YYYY = 2020
+mm = 4
+dd = 29
 hr_min = 16     # don't acquire files before this hour
-hr_max = 18     # don't acquire files after end of this hour
+hr_max = 16     # don't acquire files after end of this hour
 ###########################################
 
 # Assuming we'll do central time for Chicago
@@ -165,7 +183,7 @@ hr_max = 18     # don't acquire files after end of this hour
 # more on research, UTC has always been sufficient
 # maybe this is a good project for someone else :)
 
-time_shift = timedelta(hours=6)
+time_shift = timedelta(hours=5)
 
 # create a string of format YYYYmmdd based on inputs above (example: '20190719')
 # then, use this string to create sub-directory in image directory to save images
@@ -175,7 +193,7 @@ os.makedirs(this_image_dir, exist_ok = True)
 
 this_data_dir = os.path.join(data_dir,ymd_str,radar,'raw')
 
-radar_files_already_downloaded = True
+radar_files_already_downloaded = False
 
 if radar_files_already_downloaded is False:
     # sample directory I'd use    : 'C:/data/20180719/KDMX/raw'
