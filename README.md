@@ -36,13 +36,15 @@ To create the environment, go to the directory containing the file and use the c
 
 This will then create an environment called pyart_env that can be activated by:
 
-        source activate pyart_env
+        source activate pyart
 
 or deactivated after use:
 
-        source deactivate pyart_env
+        source deactivate pyart
 
-Collaborating with Others
--------------------------
+Define your local configuration settings
+-----------------------------------------
 
-Here there would be information about contributing to this project!
+Copy the configtemplate.py to another file in the same folder and call it configlocal.py
+Change your paths accordingly
+
