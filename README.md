@@ -45,6 +45,7 @@ or deactivated after use:
 Define your local configuration settings
 -----------------------------------------
 
-Copy the configtemplate.py to another file in the same folder and call it configlocal.py
-Change your paths accordingly
+Copy ```configtemplate.py``` to another file in the same folder and call it ```configlocal.py```
+
+Then change your paths accordingly.
 
