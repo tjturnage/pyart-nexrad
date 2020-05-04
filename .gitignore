@@ -1,4 +1,2 @@
-configlocal.py
-data
-images
-__pycache__
+data/
+images/

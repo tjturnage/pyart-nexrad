@@ -4,6 +4,8 @@ Created on Wed Apr 29 18:30:14 2020
 
 @author: eric.lenning
 
+*** Copy this file to configlocal.py on your system. ***
+
 In the variables below, enter the valid pathnames for your system.
 
 You may only need to change the first entry.
