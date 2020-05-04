@@ -1,6 +1,11 @@
 # Basic environment for Py-ART.
 # includes s3fs for AWS downloads and spyder for editing
-name: pyart_env
+# 5/4/2020
+#   - changed name of channel from pyart_env to pyart
+#   - added metpy because lat/lon plots should be available soon
+#   - added siphon as another means to grab data in near realtime
+
+name: pyart
 channels:
   - conda-forge
   - defaults
@@ -10,6 +15,8 @@ dependencies:
   - scipy
   - matplotlib
   - netcdf4
+  - metpy
+  - siphon
   - wradlib
   - cartopy
   - arm_pyart
