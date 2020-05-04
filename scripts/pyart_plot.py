@@ -14,6 +14,7 @@ Prequisites:
 import sys
 import os
 import configlocal as cfg
+from aws_catalog import NexradLevel2
 
 sys.path.append(os.path.join(cfg.resources_dir))
 
@@ -82,7 +83,7 @@ def pyart_plot_reflectivity(filepath,filename,dx=1,dy=1):
 
     """
     # create datetime object from filename
-    dt_obj = datetime.strptime(filename[4:-4],'%Y%m%d_%H%M%S')
+    dt_obj = datetime.strptime(filename[4:19],'%Y%m%d_%H%M%S')
     # convert datetime object from UTC to local time
     local_dt_obj = dt_obj - time_shift
     # create string for title based on new datetime object
@@ -169,12 +170,13 @@ shape_path = os.path.join(gis_dir, 'c_02ap19', 'c_02ap19.shp')
 # Define radar, date, hours in which to acquire files and plot data
 ###########################################
 radar = 'KLOT'
-YYYY = 2020
-mm = 4
-dd = 29
-hr_min = 16     # don't acquire files before this hour
-hr_max = 16     # don't acquire files after end of this hour
+start_date = datetime(2015, 4, 9, 23, 50)
+end_date = datetime(2015, 4, 10, 0, 10)
 ###########################################
+
+# Go to AWS or other location and get list of available files for date range
+nexradlist = NexradLevel2(radar, start_date, end_date)
+filelist = nexradlist.filelist()
 
 # Assuming we'll do central time for Chicago
 # my klunky way of subtracting 6 hours from UTC, to get local time
@@ -187,15 +189,22 @@ time_shift = timedelta(hours=5)
 
 # create a string of format YYYYmmdd based on inputs above (example: '20190719')
 # then, use this string to create sub-directory in image directory to save images
+YYYY = start_date.year
+mm = start_date.month
+dd = start_date.day
 ymd_str = f'{YYYY:.0f}{mm:02.0f}{dd:02.0f}'
 this_image_dir = os.path.join(image_dir,ymd_str,'radar')
 os.makedirs(this_image_dir, exist_ok = True)
 
 this_data_dir = os.path.join(data_dir,ymd_str,radar,'raw')
 
-radar_files_already_downloaded = False
+radar_files_already_downloaded = nexradlist.download(filelist, this_data_dir)
 
+# Eventually most of this can go away since downloads now occur elsewhere.
 if radar_files_already_downloaded is False:
+    print("Data files not found or some were missing.")
+    
+    """
     # sample directory I'd use    : 'C:/data/20180719/KDMX/raw'
     this_data_dir = os.path.join(data_dir,ymd_str,radar,'raw')
     os.makedirs(this_data_dir,exist_ok=True)
@@ -222,6 +231,7 @@ if radar_files_already_downloaded is False:
             fs.get(files[f],dst_filepath)                   # download files to destination dir
             print('  Download complete! Now creating plot.')
             locations = pyart_plot_reflectivity(dst_filepath,filename)  # calls this method to plot each file on the fly
+    """
 
 else:
     #this_data_dir = 'C:/data/20190720/radar' # wherever you have the arc2 files stored
