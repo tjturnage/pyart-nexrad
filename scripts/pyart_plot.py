@@ -18,6 +18,7 @@ from aws_catalog import NexradLevel2
 import matplotlib.pyplot as plt
 import pyart
 import cartopy.crs as ccrs
+from metpy.plots import USCOUNTIES
 from radar_cmaps import plts
 from datetime import datetime, timedelta
 
@@ -38,7 +39,7 @@ py_call = cfg.py_call
 
 def get_places(xmin, xmax, ymin, ymax):
 
-    src = os.path.join(cfg.gis_dir, "places", "places_conus.csv")
+    src = os.path.join(cfg.gis_dir, "places_conus.csv")
 
     places = []
     with open(src) as fp:
@@ -106,9 +107,9 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
     ymin = rda_lat - dy
     ymax = rda_lat + dy
 
-    ''' Issue #4: Commented out until GIS folder is provided in pyart repo
+    # Issue #4: Commented out until GIS folder is provided in pyart repo
     locations = get_places(xmin, xmax, ymin, ymax)
-    '''
+
     fig = plt.figure(figsize=(6, 6))
     projection = ccrs.LambertConformal(central_latitude=rda_lat,
                                        central_longitude=rda_lon)
@@ -120,15 +121,18 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
                          min_lon=xmin, max_lon=xmax, min_lat=ymin,
                          max_lat=ymax,
                          resolution='50m', projection=projection,
-                         shapefile=shape_path,
+                         # shapefile=shape_path,
                          shapefile_kwargs={'facecolor': 'none',
                                            'edgecolor': 'gray',
                                            'linewidth': 0.7},
                          lat_lines=[0], lon_lines=[0],  # omit lat/lon lines
                          fig=fig, lat_0=rda_lat, lon_0=rda_lon)
 
-    ''' Issue #4 -- Module gis_layers not provided in pyart repo
     ax = display.ax
+    ax.add_feature(USCOUNTIES.with_scale('5m'), edgecolor='gray',
+                   linewidth=0.7)
+    ''' Issue #4 -- Module gis_layers not provided in pyart repo
+
 
     for sh in shape_mini:
         if search('inter', str(sh)):
@@ -144,16 +148,14 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
             pass
     '''
 
-    ''' Issue #4: Commented out until GIS folder is provided in pyart repo
-    for p in range(0,len(locations)):
+    for p in range(0, len(locations)):
         place = locations[p][0]
         lat = float(locations[p][2])
         lon = float(locations[p][1])
-        plt.plot(lon,lat, 'o', color='black', transform=ccrs.PlateCarree(),
+        plt.plot(lon, lat, 'o', color='black', transform=ccrs.PlateCarree(),
                  zorder=10)
         plt.text(lon, lat, place, horizontalalignment='center',
                  verticalalignment='top', transform=ccrs.PlateCarree())
-    '''
 
     image_dst_path = os.path.join(this_image_dir, filename + '.png')
 
@@ -182,9 +184,9 @@ shape_path = os.path.join(gis_dir, 'c_02ap19', 'c_02ap19.shp')
 # TODO: Move this to an external location, and eventually provide via a GUI.
 # Define radar, date, hours in which to acquire files and plot data
 ###########################################
-radar = 'KLOT'
+radar = 'KGRR'
 start_date = datetime(2015, 4, 10, 23, 50)
-end_date = datetime(2015, 4, 11, 0, 10)
+end_date = datetime(2015, 4, 11, 0, 5)
 ###########################################
 
 # Go to AWS or other location and get list of available files for date range
@@ -219,36 +221,6 @@ radar_files_already_downloaded = nexradlist.download(filelist, this_data_dir)
 if radar_files_already_downloaded is False:
     print("Data files not found or some were missing.")
 
-    """
-    # sample directory I'd use    : 'C:/data/20180719/KDMX/raw'
-    this_data_dir = os.path.join(data_dir,ymd_str,radar,'raw')
-    os.makedirs(this_data_dir,exist_ok=True)
-
-    # Here we use Amazon AWS to download and process the desired radar data
-    import s3fs
-    fs = s3fs.S3FileSystem(anon=True)
-    fs.ls('s3://noaa-nexrad-level2/')
-    # example AWS bucket directory  : 'noaa-nexrad-level2/2018/07/19/KDMX/'
-    bucket_dir_str =
-    f'noaa-nexrad-level2/{YYYY:.0f}/{mm:02.0f}/{dd:02.0f}/{radar}/'
-
-    # list available files in bucket
-    # sample filename :  KDMX20180719_221153_V06
-    files = np.array(fs.ls(bucket_dir_str))
-
-    # sample source filepath :
-    # 'noaa-nexrad-level2/2018/07/19/KDMX/KDMX20180719_221153_V06'
-    for f in range(0,len(files)):
-        filename = files[f].split('/')[-1]
-        file_hour = int(filename.split('_')[1][0:2])
-        if file_hour >= hr_min and file_hour <= hr_max and
-        'MD' not in filename:
-            print('getting... ' + str(files[f]))
-            dst_filepath = os.path.join(this_data_dir,files[f].split('/')[-1])
-            fs.get(files[f],dst_filepath)  # download files to destination dir
-            print('  Download complete! Now creating plot.')
-            locations = pyart_plot_reflectivity(dst_filepath,filename)
-    """
 
 else:
     # this_data_dir = 'C:/data/20190720/radar' # where arc2 files are
