@@ -60,6 +60,40 @@ def get_places(xmin, xmax, ymin, ymax):
     return places
 
 
+def extract_sweeps(orig_list, cut):
+    """
+
+    Parameters
+    ----------
+    orig_list : list of floats representing elevations for every sweep
+
+    cut : integer representing desired cut to plot
+          possible values are 5, 9, 13, 18, 24, 35
+
+
+    Returns
+    -------
+    cut_list : list of integers
+        indices representing sweep numbers associated with CS cuts
+
+    """
+    # multiply elevations by 10 and round to ensure that the possible
+    # values listed above are represented
+    sweep_list = [int(round(x*10)) for x in orig_list]
+    cut_list = []
+    found_cut = False
+    for t in range(0, len(sweep_list)):
+
+        if sweep_list[t] == cut and found_cut is False:
+
+            cut_list.append(t)
+            found_cut = True
+        elif sweep_list[t] == cut and found_cut is True:
+            found_cut = False
+
+    return cut_list
+
+
 def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
     """
 
@@ -93,15 +127,17 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
 
     """
     # create datetime object from filename
-    dt_obj = datetime.strptime(filename[4:19], '%Y%m%d_%H%M%S')
+    file_timestamp = datetime.strptime(filename[4:19], '%Y%m%d_%H%M%S')
     # convert datetime object from UTC to local time
-    local_dt_obj = dt_obj - time_shift
+    local_dt_obj = file_timestamp - time_shift
     # create string for title based on new datetime object
     title = datetime.strftime(local_dt_obj, '%a %b %d, %Y\n%I:%M %p EDT')
     radar = pyart.io.read_nexrad_archive(filepath)
     display = pyart.graph.RadarMapDisplay(radar)
+
     rda_lon = radar.longitude['data'][0]
     rda_lat = radar.latitude['data'][0]
+
     xmin = rda_lon - dx
     xmax = rda_lon + dx
     ymin = rda_lat - dy
@@ -109,62 +145,80 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
 
     locations = get_places(xmin, xmax, ymin, ymax)
 
-    fig = plt.figure(figsize=(6, 6))
-    projection = ccrs.LambertConformal(central_latitude=rda_lat,
-                                       central_longitude=rda_lon)
-    display.plot_ppi_map('reflectivity', 0, vmin=-30, vmax=80,
-                         cmap=plts['Ref']['cmap'],
-                         title=title, title_flag=True,
-                         colorbar_flag=True,
-                         colorbar_label=plts['Ref']['cblabel'],
-                         min_lon=xmin, max_lon=xmax, min_lat=ymin,
-                         max_lat=ymax,
-                         resolution='50m', projection=projection,
-                         # shapefile=shape_path,
-                         shapefile_kwargs={'facecolor': 'none',
-                                           'edgecolor': 'gray',
-                                           'linewidth': 0.7},
-                         lat_lines=[0], lon_lines=[0],  # omit lat/lon lines
-                         fig=fig, lat_0=rda_lat, lon_0=rda_lon)
+    # extract sweeps for the 0.5 degree cut
+    angles = list(radar.fixed_angle['data'])
+    desired_sweeps = extract_sweeps(angles, 5)
 
-    ax = display.ax
-    ax.add_feature(USCOUNTIES.with_scale('5m'), edgecolor='gray',
-                   linewidth=0.7)
+    for s in desired_sweeps:
 
-    for p in range(0, len(locations)):
-        place = locations[p][0]
-        lat = float(locations[p][2])
-        lon = float(locations[p][1])
-        plt.plot(lon, lat, 'o', color='black', transform=ccrs.PlateCarree(),
-                 zorder=10)
-        plt.text(lon, lat, place, horizontalalignment='center',
-                 verticalalignment='top', transform=ccrs.PlateCarree())
+        # look up first radial of the sweep
+        sweep_start = radar.sweep_start_ray_index['data'][s]
+        # retrieve number of seconds elapsed since very first sweep
+        sweep_start_seconds = int(round(radar.time['data'][sweep_start]))
 
-    image_dst_path = os.path.join(this_image_dir, filename + '.png')
+        new_time = file_timestamp + timedelta(seconds=sweep_start_seconds)
+        full_title = display.generate_title('reflectivity', s)
+        # example of how temp_title looks
+        # 'KILX 0.5 Deg. 2019-06-16T03:01:10.802000Z \n
+        # Equivalent reflectivity factor'        
+        title_parts = full_title.split(' ')
+        rda_str = title_parts[0]
+        elevation_str = title_parts[1]
+        new_title = "{} {} Degrees Reflectivity\n".format(rda_str,
+                                                          elevation_str)
 
-    plt.savefig(image_dst_path, format='png', bbox_inches="tight", dpi=150)
-    print('  Image saved at  ' + image_dst_path)
-    plt.close()
+        time_title = datetime.strftime(new_time, '%a %b %d, %Y\n%I:%M %p UTC')
+        image_time = datetime.strftime(new_time, '_%Y%m%d_%H%M_UTC.png')
+        image_filename = rda_str + image_time
+        title = new_title + time_title
+        fig = plt.figure(figsize=(6, 6))
+        projection = ccrs.LambertConformal(central_latitude=rda_lat,
+                                           central_longitude=rda_lon)
+        display.plot_ppi_map('reflectivity', int(s), vmin=-30, vmax=80,
+                             cmap=plts['Ref']['cmap'],
+                             title=title, title_flag=True,
+                             colorbar_flag=True,
+                             colorbar_label=plts['Ref']['cblabel'],
+                             min_lon=xmin, max_lon=xmax, min_lat=ymin,
+                             max_lat=ymax,
+                             resolution='50m', projection=projection,
+                             # shapefile=shape_path,
+                             shapefile_kwargs={'facecolor': 'none',
+                                               'edgecolor': 'gray',
+                                               'linewidth': 0.7},
+                             lat_lines=[0], lon_lines=[0],  # omit grid lines
+                             fig=fig, lat_0=rda_lat, lon_0=rda_lon)
+
+        ax = display.ax
+        ax.add_feature(USCOUNTIES.with_scale('5m'), edgecolor='gray',
+                       linewidth=0.7)
+
+        for p in range(0, len(locations)):
+            place = locations[p][0]
+            lat = float(locations[p][2])
+            lon = float(locations[p][1])
+            plt.plot(lon, lat, 'o', color='black',
+                     transform=ccrs.PlateCarree(), zorder=10)
+            plt.text(lon, lat, place, horizontalalignment='center',
+                     verticalalignment='top', transform=ccrs.PlateCarree())
+
+        # image_dst_path = os.path.join(this_image_dir, filename + '.png')
+        image_dst_path = os.path.join(this_image_dir, image_filename)
+
+        plt.savefig(image_dst_path, format='png', bbox_inches="tight", dpi=150)
+        print('  Image saved at  ' + image_dst_path)
+        plt.close()
 
     return None
 
 
-# ##########################################
-# Need this pre-staged in directory of your choice
-# can be anything, not just counties
-
-# TODO: Maybe nove to a central config location.  For now, put in gis_dir.
-# shape_path =
-# 'C:/data/GIS/counties/counties_central_conus/counties_central_conus.shp'
-shape_path = os.path.join(gis_dir, 'c_02ap19', 'c_02ap19.shp')
-
-
-# TODO: Move this to an external location, and eventually provide via a GUI.
+# TODO: Move other GIS files to an external location, and eventually
+# provide via a GUI.
 # Define radar, date, hours in which to acquire files and plot data
 ###########################################
 radar = 'KGRR'
-start_date = datetime(2015, 4, 10, 23, 50)
-end_date = datetime(2015, 4, 11, 0, 5)
+start_date = datetime(2020, 4, 8, 0, 0)
+end_date = datetime(2020, 4, 8, 0, 10)
 ###########################################
 
 # Go to AWS or other location and get list of available files for date range
