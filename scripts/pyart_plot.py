@@ -107,7 +107,6 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
     ymin = rda_lat - dy
     ymax = rda_lat + dy
 
-    # Issue #4: Commented out until GIS folder is provided in pyart repo
     locations = get_places(xmin, xmax, ymin, ymax)
 
     fig = plt.figure(figsize=(6, 6))
@@ -131,22 +130,6 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
     ax = display.ax
     ax.add_feature(USCOUNTIES.with_scale('5m'), edgecolor='gray',
                    linewidth=0.7)
-    ''' Issue #4 -- Module gis_layers not provided in pyart repo
-
-
-    for sh in shape_mini:
-        if search('inter', str(sh)):
-            ax.add_feature(shape_mini[sh], facecolor='none', edgecolor='red',
-                           linewidth=0.5)
-        elif search('states', str(sh)):
-            ax.add_feature(shape_mini[sh], facecolor='none', edgecolor='black',
-                           linewidth=1, zorder=10)
-        elif search('counties', str(sh)):
-            ax.add_feature(shape_mini[sh], facecolor='none', edgecolor='gray',
-                           linewidth=0.5)
-        else:
-            pass
-    '''
 
     for p in range(0, len(locations)):
         place = locations[p][0]
@@ -163,13 +146,7 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
     print('  Image saved at  ' + image_dst_path)
     plt.close()
 
-    # Can't return locations until GIS folder added to repo
-    return None  # locations
-
-
-# Issue #4 -- Module gis_layers not provided in pyart repo
-# from gis_layers import pyart_gis_layers
-# shape_mini = pyart_gis_layers()
+    return None
 
 
 # ##########################################
@@ -180,6 +157,7 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
 # shape_path =
 # 'C:/data/GIS/counties/counties_central_conus/counties_central_conus.shp'
 shape_path = os.path.join(gis_dir, 'c_02ap19', 'c_02ap19.shp')
+
 
 # TODO: Move this to an external location, and eventually provide via a GUI.
 # Define radar, date, hours in which to acquire files and plot data
