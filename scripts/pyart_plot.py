@@ -18,7 +18,7 @@ from aws_catalog import NexradLevel2
 import matplotlib.pyplot as plt
 import pyart
 import cartopy.crs as ccrs
-from metpy.plots import USCOUNTIES
+# from metpy.plots import USCOUNTIES
 from radar_cmaps import plts
 from datetime import datetime, timedelta
 
@@ -33,6 +33,7 @@ placefile_dir = cfg.placefile_dir
 archive_dir = cfg.archive_dir
 
 gis_dir = cfg.gis_dir
+shape_path = os.path.join(gis_dir, 'c_02ap19', 'c_02ap19.shp')
 
 py_call = cfg.py_call
 
@@ -138,10 +139,11 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
     rda_lon = radar.longitude['data'][0]
     rda_lat = radar.latitude['data'][0]
 
-    xmin = rda_lon - dx
-    xmax = rda_lon + dx
-    ymin = rda_lat - dy
-    ymax = rda_lat + dy
+    # add or subtract 0.25 degrees to ensure names stay within plot panel
+    xmin = rda_lon - dx + 0.25
+    xmax = rda_lon + dx - 0.25
+    ymin = rda_lat - dy + 0.25
+    ymax = rda_lat + dy - 0.25
 
     locations = get_places(xmin, xmax, ymin, ymax)
 
@@ -182,16 +184,16 @@ def pyart_plot_reflectivity(filepath, filename, dx=1, dy=1):
                              min_lon=xmin, max_lon=xmax, min_lat=ymin,
                              max_lat=ymax,
                              resolution='50m', projection=projection,
-                             # shapefile=shape_path,
+                             shapefile=shape_path,
                              shapefile_kwargs={'facecolor': 'none',
                                                'edgecolor': 'gray',
                                                'linewidth': 0.7},
                              lat_lines=[0], lon_lines=[0],  # omit grid lines
                              fig=fig, lat_0=rda_lat, lon_0=rda_lon)
 
-        ax = display.ax
-        ax.add_feature(USCOUNTIES.with_scale('5m'), edgecolor='gray',
-                       linewidth=0.7)
+        # ax = display.ax
+        # ax.add_feature(USCOUNTIES.with_scale('5m'), edgecolor='gray',
+        #                linewidth=0.7)
 
         for p in range(0, len(locations)):
             place = locations[p][0]
