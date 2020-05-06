@@ -23,25 +23,25 @@ import numpy as np
 
 class NexradLevel2():
 
-    def __init__(this, site, start_datetime, end_datetime):
-        this.site = site
-        this.start_datetime = start_datetime
-        this.end_datetime = end_datetime
+    def __init__(self, site, start_datetime, end_datetime):
+        self.site = site
+        self.start_datetime = start_datetime
+        self.end_datetime = end_datetime
 
-    def daterange(this):
+    def daterange(self):
         """ Yields list of dates within specified time range. """
 
-        span = this.end_datetime - this.start_datetime
+        span = self.end_datetime - self.start_datetime
 
         day_span = math.ceil(float(span.total_seconds()) / (3600*24))
 
-        if this.start_datetime.hour > this.end_datetime.hour:
+        if self.start_datetime.hour > self.end_datetime.hour:
             day_span += 1
 
         for n in range(day_span):
-            yield this.start_datetime + timedelta(n)
+            yield self.start_datetime + timedelta(n)
 
-    def filelist(this):
+    def filelist(self):
         """ List of files for site within specified time range. """
 
         fs = s3fs.S3FileSystem(anon=True)
@@ -49,16 +49,17 @@ class NexradLevel2():
 
         radarfiles = []
 
-        for single_date in this.daterange():
+        for single_date in self.daterange():
 
             YYYY = single_date.year  # strftime("%Y")
             mm = single_date.month  # strftime("%m")
             dd = single_date.day  # strftime("%d")
 
             # sample bucket dir : 'noaa-nexrad-level2/2018/07/19/KDMX/'
-            bucket_dir_str = f'noaa-nexrad-level2/{YYYY:.0f}/{mm:02.0f}/\
-                              {dd:02.0f}/{this.site}/'
-
+            # broken into two substrings to stay <79 columns
+            bucket_str1 = f'noaa-nexrad-level2/{YYYY:.0f}/'
+            bucket_str2 = f'{mm:02.0f}/{dd:02.0f}/{self.site}/'
+            bucket_dir_str = bucket_str1 + bucket_str2
             # list available files in bucket
             # sample filename :  KDMX20180719_221153_V06
             files = np.array(fs.ls(bucket_dir_str))
@@ -74,8 +75,8 @@ class NexradLevel2():
                         file_datetime = datetime.strptime(file_date,
                                                           '%Y%m%d_%H%M%S')
 
-                        if (file_datetime >= this.start_datetime
-                            and file_datetime <= this.end_datetime):
+                        if (file_datetime >= self.start_datetime
+                           and file_datetime <= self.end_datetime):
 
                             print(files[f])
 
@@ -92,11 +93,11 @@ class NexradLevel2():
 
         return radarfiles
 
-    def download(this, filelist, raw_data_dir):
+    def download(self, filelist, raw_data_dir):
         """Download level 2 radar files from AWS.
 
         Files will be named according to the format on AWS but assumes nothing
-        about the destination folder.  this is because different users may
+        about the destination folder.  self is because different users may
         have different requirements for where data should be stored.
 
         Args:
