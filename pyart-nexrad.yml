@@ -1,0 +1,25 @@
+# Basic environment for Py-ART.
+# Everything after xarray is for additional development
+name: pyart_nexrad
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - numpy
+  - scipy
+  - matplotlib
+  - netcdf4
+  - wradlib
+  - cartopy
+  - arm_pyart
+  - xarray
+  - metpy
+  - siphon
+  - pip
+  - ipywidgets
+  - boto3
+  - botocore
+  - s3fs
+  - seaborn
+  - scikit-image
